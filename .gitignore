@@ -1,0 +1,7 @@
+node_modules/
+.env
+dist/
+*.log
+coverage/
+backend/uploads/
+backend/database/backups/

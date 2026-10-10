@@ -1,0 +1,90 @@
+name: ticketdesk
+
+x-backend-env: &backend-env
+  DB_HOST: db
+  DB_PORT: 3306
+  DB_USER: ${DB_USER}
+  DB_PASSWORD: ${DB_PASSWORD}
+  DB_NAME: ${DB_NAME:-tickets_per}
+  DB_NAME_TEST: ${DB_NAME:-tickets_per}_test
+  SESSION_SECRET: ${SESSION_SECRET}
+  CORS_ORIGINS: ${CORS_ORIGINS}
+  COOKIE_SECURE: ${COOKIE_SECURE:-false}
+  TRUST_PROXY: 1
+  UPLOAD_DIR: /app/uploads
+  SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-}
+  SUPERADMIN_FIRST_NAME: ${SUPERADMIN_FIRST_NAME:-Administrador}
+  SUPERADMIN_LAST_NAME: ${SUPERADMIN_LAST_NAME:-General}
+  SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD:-}
+
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:-tickets_per}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      TZ: UTC
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/mysql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    # Descomenta para conectarte con MySQL Workbench desde fuera de la VM:
+    # ports:
+    #   - "3307:3306"
+
+  backend:
+    build:
+      context: ./backend
+      target: prod
+    restart: unless-stopped
+    environment:
+      <<: *backend-env
+      NODE_ENV: production
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_APP_NAME: ${VITE_APP_NAME:-TicketDesk}
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # Pruebas automáticas: docker compose --profile test run --rm backend-test
+  backend-test:
+    profiles: ["test"]
+    build:
+      context: ./backend
+      target: test
+    environment:
+      <<: *backend-env
+      NODE_ENV: test
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:
+  uploads:

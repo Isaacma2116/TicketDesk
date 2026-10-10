@@ -1,0 +1,35 @@
+{
+  "name": "tickets-per-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API de la plataforma de gestión de tickets (Etapa 1: autenticación, usuarios y roles)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "db:migrate": "node database/migrate.js",
+    "db:seed": "node database/seed.js",
+    "db:setup": "node database/migrate.js && node database/seed.js",
+    "create-superadmin": "node scripts/create-superadmin.js",
+    "test": "node --import ./tests/setup.js --test --test-concurrency=1 \"tests/**/*.test.js\""
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.5",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.3.0",
+    "multer": "^2.4.0",
+    "mysql2": "^3.24.5",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "supertest": "^7.3.1"
+  }
+}
